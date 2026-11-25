@@ -53,6 +53,10 @@ async def test_healthz_endpoint_returns_200_and_503() -> None:
         assert body_ok["status"] == "ok"
         assert body_ok["db"] == "ok"
 
+        resp_root = await client.get("/")
+        assert resp_root.status == 200
+        assert await resp_root.json() == body_ok
+
         healthy = False
         resp_err = await client.get("/healthz")
         assert resp_err.status == 503

@@ -45,6 +45,7 @@ class HealthServer:
         self._probe = probe
         self._app = web.Application()
         self._app.router.add_get("/healthz", self._handle_healthz)
+        self._app.router.add_get("/", self._handle_healthz)
         self._runner: web.AppRunner | None = None
 
     @property
