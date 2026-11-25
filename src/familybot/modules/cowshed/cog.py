@@ -46,6 +46,18 @@ class CowshedCog(commands.Cog, name="cowshed"):
         )
         await interaction.followup.send(embed=embed, allowed_mentions=SAFE_ALLOWED_MENTIONS)
 
+    @app_commands.command(
+        name="stop_reminders", description="Stop repeating collect-time reminders"
+    )
+    async def stop_reminders(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        actor = build_actor_context(interaction)
+        await self.service.stop_reminders(actor)
+        await interaction.followup.send(
+            embed=success_embed("Reminders Stopped", "Milk collect reminders stopped."),
+            allowed_mentions=SAFE_ALLOWED_MENTIONS,
+        )
+
     @app_commands.command(name="set_role", description="Set the role pinged when collection is due")
     async def set_role(self, interaction: discord.Interaction, role: discord.Role) -> None:
         await interaction.response.defer(ephemeral=True)

@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from familybot.core.time import utcnow
-from familybot.db.repositories.cow_shed_state import CowShedStateRecord
+from familybot.db.repositories.cow_shed_state import CowShedStateRecord, SqlCowShedStateRepository
 from familybot.db.repositories.protocols import (
     AuditLogRecord,
     GuildSettingsRecord,
@@ -124,7 +124,7 @@ class FakeMemberRepository:
         return record
 
 
-class FakeCowShedStateRepository:
+class FakeCowShedStateRepository(SqlCowShedStateRepository):
     def __init__(self, store: dict[int, CowShedStateRecord]) -> None:
         self._store = store
 
@@ -136,7 +136,12 @@ class FakeCowShedStateRepository:
         if existing is not None:
             return existing
         created = CowShedStateRecord(
-            guild_id=guild_id, fed_at=None, collect_at=None, collect_role_id=None
+            guild_id=guild_id,
+            fed_at=None,
+            collect_at=None,
+            collect_role_id=None,
+            reminders_active=False,
+            last_reminder_at=None,
         )
         self._store[guild_id] = created
         return created
@@ -148,12 +153,16 @@ class FakeCowShedStateRepository:
         fed_at: datetime | None = None,
         collect_at: datetime | None = None,
         collect_role_id: int | None = None,
+        reminders_active: bool | None = None,
+        last_reminder_at: datetime | None = None,
     ) -> CowShedStateRecord:
         record = CowShedStateRecord(
             guild_id=guild_id,
             fed_at=fed_at,
             collect_at=collect_at,
             collect_role_id=collect_role_id,
+            reminders_active=bool(reminders_active),
+            last_reminder_at=last_reminder_at,
         )
         self._store[guild_id] = record
         return record

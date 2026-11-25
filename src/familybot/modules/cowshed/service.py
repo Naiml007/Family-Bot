@@ -28,6 +28,8 @@ class CowshedService:
                 actor.guild_id,
                 fed_at=now,
                 collect_at=now + type(self).COLLECT_DELAY,
+                reminders_active=True,
+                last_reminder_at=None,
             )
             await uow.commit()
             return self._dto(state)
@@ -43,6 +45,14 @@ class CowshedService:
             settings = await uow.guild_settings.get_or_create(actor.guild_id)
             require_role_level(actor, settings.role_map, RoleLevel.ADMIN, action="set collect role")
             state = await uow.cow_shed_state.update(actor.guild_id, collect_role_id=role_id)
+            await uow.commit()
+            return self._dto(state)
+
+    async def stop_reminders(self, actor: ActorContext) -> CowShedDTO:
+        async with self._uow_factory.open() as uow:
+            settings = await uow.guild_settings.get_or_create(actor.guild_id)
+            require_role_level(actor, settings.role_map, RoleLevel.ADMIN, action="stop reminders")
+            state = await uow.cow_shed_state.update(actor.guild_id, reminders_active=False)
             await uow.commit()
             return self._dto(state)
 

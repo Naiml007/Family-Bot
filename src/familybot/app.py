@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 import time
 import traceback
@@ -22,6 +23,7 @@ from familybot.db.base import ping_db
 from familybot.db.uow import SqlUnitOfWorkFactory
 from familybot.modules.admin.schemas import RuntimeSnapshot
 from familybot.observability.health import HealthSnapshot
+from familybot.scheduler.reminder_loop import run_cow_reminder_loop
 
 log = structlog.get_logger()
 
@@ -71,6 +73,7 @@ class FamilyBot(commands.Bot):
         self.session_factory = session_factory
         self.uow_factory = SqlUnitOfWorkFactory(session_factory)
         self.started_at_monotonic = time.monotonic()
+        self._cow_reminder_task: asyncio.Task[None] | None = None
 
     async def setup_hook(self) -> None:
         """Auto-load feature cogs, optional dev tools, error handler, and command sync."""
@@ -95,6 +98,10 @@ class FamilyBot(commands.Bot):
         else:
             await self.tree.sync()
             log.info("commands.synced", scope="global")
+
+        self._cow_reminder_task = asyncio.create_task(
+            run_cow_reminder_loop(self), name="cowshed-reminder-loop"
+        )
 
     async def _dedupe_commands(self, guild_id: int) -> None:
         """Delete duplicate guild commands, keeping the first of each name."""
