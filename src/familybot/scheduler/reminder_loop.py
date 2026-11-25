@@ -10,6 +10,8 @@ import discord
 import structlog
 
 from familybot.core.time import utcnow
+from familybot.modules.cowshed.embeds import sync_collect_message
+from familybot.modules.cowshed.service import CowshedService
 
 if TYPE_CHECKING:
     from familybot.app import FamilyBot
@@ -18,34 +20,40 @@ log = structlog.get_logger()
 
 
 async def run_cow_reminder_loop(bot: FamilyBot) -> None:
-    """Poll due Cow Shed reminders and send to the guild log channel."""
+    """Edit one Milk Collect embed per guild every 5 minutes until stopped."""
+    service = CowshedService(bot.uow_factory)
     while True:
         try:
             async with bot.uow_factory.open() as uow:
                 rows = await uow.cow_shed_state.get_due_reminders()
-                for row in rows:
-                    if row.last_reminder_at and utcnow() - row.last_reminder_at < timedelta(
-                        minutes=5
-                    ):
-                        continue
-                    await uow.cow_shed_state.update(
-                        row.guild_id, last_reminder_at=utcnow(), reminders_active=True
-                    )
+                due = [
+                    row
+                    for row in rows
+                    if row.last_reminder_at is None
+                    or utcnow() - row.last_reminder_at >= timedelta(minutes=5)
+                ]
+                for row in due:
+                    await uow.cow_shed_state.update(row.guild_id, last_reminder_at=utcnow())
                 await uow.commit()
 
-            for row in rows:
-                guild = bot.get_guild(row.guild_id)
-                if guild is None:
-                    continue
+            for row in due:
                 async with bot.uow_factory.open() as uow:
-                    cfg = await uow.guild_settings.get(guild.id)
-                if cfg is None or cfg.log_channel_id is None:
+                    cfg = await uow.guild_settings.get(row.guild_id)
+                if cfg is None or cfg.reminders_channel_id is None:
                     continue
-                channel = guild.get_channel(cfg.log_channel_id)
-                if isinstance(channel, discord.TextChannel):
-                    await channel.send(
-                        "Milk collection due. Use `/cowshed stop_reminders` to stop."
-                    )
+                channel = bot.get_channel(cfg.reminders_channel_id)
+                if not isinstance(channel, discord.TextChannel):
+                    continue
+                mention = f"<@&{row.collect_role_id}>" if row.collect_role_id else None
+                await sync_collect_message(
+                    channel,
+                    row.reminder_message_id,
+                    service=service,
+                    guild_id=row.guild_id,
+                    collect_at=row.collect_at,
+                    last_reminder_at=utcnow(),
+                    mention=mention,
+                )
         except Exception:
             log.exception("cowshed_reminder_loop.error")
         await asyncio.sleep(30)

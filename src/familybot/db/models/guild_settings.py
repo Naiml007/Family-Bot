@@ -23,6 +23,7 @@ class GuildSettings(Base):
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
     log_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     error_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    reminders_channel_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     role_map: Mapped[dict[str, int | list[int]]] = mapped_column(
         _JSONVariant, nullable=False, default=dict
     )

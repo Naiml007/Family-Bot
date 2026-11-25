@@ -159,11 +159,11 @@ Extensions auto-load from `modules/*/cog.py`; a module can be disabled per guild
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `guild_settings` | guild_id, timezone, log_channel_id, error_channel_id, role map (json), enabled_modules | One row per guild |
+| `guild_settings` | guild_id, timezone, log_channel_id, error_channel_id, reminders_channel_id, role map (json), enabled_modules | One row per guild |
 | `members` | id, guild_id, discord_id, display_name, in_game_name | Links Discord ↔ in-game name |
 | `reminders` | id, guild_id, kind, key, due_at, interval_seconds, target (role/user), channel_id, status, locked_at, attempts | Scheduler table. `kind`: nourish, cow_shed, diplomacy, event_*, solar_repair |
 | `timers` | id, guild_id, kind, started_by, started_at, duration_seconds | Nourish / Cow Shed runtime state |
-| `cow_shed_state` | guild_id, fed_at, collect_at | Current feeding time and next milk-collection deadline |
+| `cow_shed_state` | guild_id, fed_at, collect_at, collect_role_id, reminder_message_id, reminders_active, last_reminder_at | Feeding time, due time, and the single auto-updating Milk Collect embed |
 | `ledger_entries` | id, guild_id, amount (int), type, category, member_id, note, ref_id, created_at | **Append-only.** Balance = SUM(amount) |
 | `inventory_items` | id, guild_id, name, category | seed, weapon, ammo, etc. |
 | `inventory_moves` | id, guild_id, container, item_id, delta, member_id, note, created_at | **Append-only.** Container: plantation, cow_shed, armory, shared_storage |

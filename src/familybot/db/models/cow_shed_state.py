@@ -20,6 +20,7 @@ class CowShedState(Base):
     fed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     collect_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     collect_role_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    reminder_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     reminders_active: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
     last_reminder_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

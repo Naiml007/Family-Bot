@@ -19,6 +19,7 @@ class CowShedStateRecord:
     fed_at: datetime | None
     collect_at: datetime | None
     collect_role_id: int | None
+    reminder_message_id: int | None
     reminders_active: bool
     last_reminder_at: datetime | None
 
@@ -27,10 +28,23 @@ def _to_dt(value: datetime | None) -> datetime | None:
     return ensure_utc(value) if value is not None else None
 
 
+def _to_record(row: CowShedState) -> CowShedStateRecord:
+    return CowShedStateRecord(
+        guild_id=row.guild_id,
+        fed_at=_to_dt(row.fed_at),
+        collect_at=_to_dt(row.collect_at),
+        collect_role_id=row.collect_role_id,
+        reminder_message_id=row.reminder_message_id,
+        reminders_active=bool(row.reminders_active),
+        last_reminder_at=_to_dt(row.last_reminder_at),
+    )
+
+
 class CowShedStateRepository(Protocol):
     async def get(self, guild_id: int) -> CowShedStateRecord | None: ...
 
     async def get_or_create(self, guild_id: int) -> CowShedStateRecord: ...
+
     async def get_due_reminders(self) -> list[CowShedStateRecord]: ...
 
     async def update(
@@ -40,6 +54,7 @@ class CowShedStateRepository(Protocol):
         fed_at: datetime | None = None,
         collect_at: datetime | None = None,
         collect_role_id: int | None = None,
+        reminder_message_id: int | None = None,
         reminders_active: bool | None = None,
         last_reminder_at: datetime | None = None,
     ) -> CowShedStateRecord: ...
@@ -55,33 +70,17 @@ class SqlCowShedStateRepository:
         row = await self._session.scalar(
             select(CowShedState).where(CowShedState.guild_id == guild_id).with_for_update()
         )
-        if row is None:
-            return None
-        return CowShedStateRecord(
-            guild_id=row.guild_id,
-            fed_at=_to_dt(row.fed_at),
-            collect_at=_to_dt(row.collect_at),
-            collect_role_id=row.collect_role_id,
-            reminders_active=bool(row.reminders_active),
-            last_reminder_at=_to_dt(row.last_reminder_at),
-        )
+        return _to_record(row) if row is not None else None
 
     async def get_or_create(self, guild_id: int) -> CowShedStateRecord:
         row = await self._session.scalar(
             select(CowShedState).where(CowShedState.guild_id == guild_id).with_for_update()
         )
         if row is None:
-            row = CowShedState(guild_id=guild_id, fed_at=None, collect_at=None, created_at=utcnow())
+            row = CowShedState(guild_id=guild_id, created_at=utcnow())
             self._session.add(row)
             await self._session.flush()
-        return CowShedStateRecord(
-            guild_id=row.guild_id,
-            fed_at=_to_dt(row.fed_at),
-            collect_at=_to_dt(row.collect_at),
-            collect_role_id=row.collect_role_id,
-            reminders_active=bool(row.reminders_active),
-            last_reminder_at=_to_dt(row.last_reminder_at),
-        )
+        return _to_record(row)
 
     async def update(
         self,
@@ -90,6 +89,7 @@ class SqlCowShedStateRepository:
         fed_at: datetime | None = None,
         collect_at: datetime | None = None,
         collect_role_id: int | None = None,
+        reminder_message_id: int | None = None,
         reminders_active: bool | None = None,
         last_reminder_at: datetime | None = None,
     ) -> CowShedStateRecord:
@@ -99,23 +99,22 @@ class SqlCowShedStateRepository:
         if row is None:
             row = CowShedState(guild_id=guild_id, created_at=utcnow())
             self._session.add(row)
-        row.fed_at = fed_at
-        row.collect_at = collect_at
-        row.collect_role_id = collect_role_id
+        # Only overwrite columns the caller supplied; reminder ticks must keep the due time.
+        if fed_at is not None:
+            row.fed_at = fed_at
+        if collect_at is not None:
+            row.collect_at = collect_at
+        if collect_role_id is not None:
+            row.collect_role_id = collect_role_id
+        if reminder_message_id is not None:
+            row.reminder_message_id = reminder_message_id
         if reminders_active is not None:
             row.reminders_active = reminders_active
         if last_reminder_at is not None:
             row.last_reminder_at = last_reminder_at
         row.updated_at = utcnow()
         await self._session.flush()
-        return CowShedStateRecord(
-            guild_id=row.guild_id,
-            fed_at=_to_dt(row.fed_at),
-            collect_at=_to_dt(row.collect_at),
-            collect_role_id=row.collect_role_id,
-            reminders_active=bool(row.reminders_active),
-            last_reminder_at=_to_dt(row.last_reminder_at),
-        )
+        return _to_record(row)
 
     async def get_due_reminders(self) -> list[CowShedStateRecord]:
         rows = await self._session.scalars(
@@ -123,14 +122,4 @@ class SqlCowShedStateRepository:
             .where(CowShedState.reminders_active.is_(True), CowShedState.collect_at <= utcnow())
             .with_for_update(skip_locked=True)
         )
-        return [
-            CowShedStateRecord(
-                guild_id=row.guild_id,
-                fed_at=_to_dt(row.fed_at),
-                collect_at=_to_dt(row.collect_at),
-                collect_role_id=row.collect_role_id,
-                reminders_active=bool(row.reminders_active),
-                last_reminder_at=_to_dt(row.last_reminder_at),
-            )
-            for row in rows
-        ]
+        return [_to_record(row) for row in rows]

@@ -19,6 +19,7 @@ class GuildSettingsRecord:
     timezone: str
     log_channel_id: int | None
     error_channel_id: int | None
+    reminders_channel_id: int | None
     role_map: dict[str, int | list[int]]
     enabled_modules: dict[str, bool]
     reminder_config: dict[str, int]
@@ -70,6 +71,8 @@ class GuildSettingsRepository(Protocol):
         clear_log_channel: bool = False,
         error_channel_id: int | None = None,
         clear_error_channel: bool = False,
+        reminders_channel_id: int | None = None,
+        clear_reminders_channel: bool = False,
         role_map: Mapping[str, int | list[int]] | None = None,
         enabled_modules: Mapping[str, bool] | None = None,
         reminder_config: Mapping[str, int] | None = None,

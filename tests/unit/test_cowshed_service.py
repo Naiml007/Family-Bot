@@ -32,6 +32,26 @@ async def test_collect_reports_due_only_when_time_passed() -> None:
     assert not_due.due is False
 
 
+async def test_set_reminders_channel() -> None:
+    factory = FakeUnitOfWorkFactory()
+    service = CowshedService(factory)
+
+    await service.set_reminders_channel(_actor(), channel_id=999)
+
+    assert factory.guild_store[7].reminders_channel_id == 999
+
+
+async def test_set_reminder_message() -> None:
+    factory = FakeUnitOfWorkFactory()
+    service = CowshedService(factory)
+    await service.feed(_actor())
+
+    await service.set_reminder_message(7, 555)
+
+    assert factory.cow_shed_store[7].reminder_message_id == 555
+    assert factory.cow_shed_store[7].collect_at is not None
+
+
 async def test_set_collect_role() -> None:
     factory = FakeUnitOfWorkFactory()
     service = CowshedService(factory)

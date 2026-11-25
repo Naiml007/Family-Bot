@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from familybot.core.embeds import info_embed, success_embed
 from familybot.core.interactions import SAFE_ALLOWED_MENTIONS, build_actor_context
+from familybot.modules.cowshed.embeds import sync_collect_message
 from familybot.modules.cowshed.service import CowshedService
 from familybot.modules.cowshed.views import CollectCowsView
 
@@ -30,7 +31,7 @@ class CowshedCog(commands.Cog, name="cowshed"):
         await interaction.followup.send(
             embed=embed,
             allowed_mentions=SAFE_ALLOWED_MENTIONS,
-            view=CollectCowsView(self.service, interaction.guild_id or 0),
+            view=CollectCowsView(self.service),
         )
 
     @app_commands.command(
@@ -46,6 +47,18 @@ class CowshedCog(commands.Cog, name="cowshed"):
         )
         await interaction.followup.send(embed=embed, allowed_mentions=SAFE_ALLOWED_MENTIONS)
 
+        channel_id = state.reminders_channel_id
+        channel = self.bot.get_channel(channel_id) if channel_id is not None else None
+        if isinstance(channel, discord.TextChannel):
+            await sync_collect_message(
+                channel,
+                state.reminder_message_id,
+                service=self.service,
+                guild_id=actor.guild_id,
+                collect_at=state.collect_at,
+                last_reminder_at=state.last_reminder_at,
+            )
+
     @app_commands.command(
         name="stop_reminders", description="Stop repeating collect-time reminders"
     )
@@ -55,6 +68,22 @@ class CowshedCog(commands.Cog, name="cowshed"):
         await self.service.stop_reminders(actor)
         await interaction.followup.send(
             embed=success_embed("Reminders Stopped", "Milk collect reminders stopped."),
+            allowed_mentions=SAFE_ALLOWED_MENTIONS,
+        )
+
+    @app_commands.command(
+        name="set_channel", description="Set the channel for the Milk Collect embed"
+    )
+    async def set_channel(
+        self, interaction: discord.Interaction, channel: discord.TextChannel
+    ) -> None:
+        await interaction.response.defer(ephemeral=True)
+        actor = build_actor_context(interaction)
+        await self.service.set_reminders_channel(actor, channel_id=channel.id)
+        await interaction.followup.send(
+            embed=success_embed(
+                "Reminders Channel Set", f"Milk Collect updates go to {channel.mention}."
+            ),
             allowed_mentions=SAFE_ALLOWED_MENTIONS,
         )
 
@@ -73,3 +102,4 @@ async def setup(bot: commands.Bot) -> None:
     """Register the cowshed cog."""
     service = CowshedService(bot.uow_factory)  # type: ignore[arg-type]
     await bot.add_cog(CowshedCog(bot, service))
+    bot.add_view(CollectCowsView(service))

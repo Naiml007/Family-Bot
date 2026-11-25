@@ -19,6 +19,7 @@ def _to_record(row: GuildSettings) -> GuildSettingsRecord:
         timezone=row.timezone,
         log_channel_id=row.log_channel_id,
         error_channel_id=row.error_channel_id,
+        reminders_channel_id=row.reminders_channel_id,
         role_map=dict(row.role_map),
         enabled_modules=dict(row.enabled_modules),
         reminder_config=dict(row.reminder_config),
@@ -75,6 +76,8 @@ class SqlGuildSettingsRepository:
         clear_log_channel: bool = False,
         error_channel_id: int | None = None,
         clear_error_channel: bool = False,
+        reminders_channel_id: int | None = None,
+        clear_reminders_channel: bool = False,
         role_map: Mapping[str, int | list[int]] | None = None,
         enabled_modules: Mapping[str, bool] | None = None,
         reminder_config: Mapping[str, int] | None = None,
@@ -114,6 +117,10 @@ class SqlGuildSettingsRepository:
             row.error_channel_id = None
         elif error_channel_id is not None:
             row.error_channel_id = error_channel_id
+        if clear_reminders_channel:
+            row.reminders_channel_id = None
+        elif reminders_channel_id is not None:
+            row.reminders_channel_id = reminders_channel_id
         if role_map is not None:
             row.role_map = dict(role_map)
         if enabled_modules is not None:

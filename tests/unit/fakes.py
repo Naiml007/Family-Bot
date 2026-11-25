@@ -34,6 +34,7 @@ class FakeGuildSettingsRepository:
             timezone="UTC",
             log_channel_id=None,
             error_channel_id=None,
+            reminders_channel_id=None,
             role_map={},
             enabled_modules={},
             reminder_config={},
@@ -52,6 +53,8 @@ class FakeGuildSettingsRepository:
         clear_log_channel: bool = False,
         error_channel_id: int | None = None,
         clear_error_channel: bool = False,
+        reminders_channel_id: int | None = None,
+        clear_reminders_channel: bool = False,
         role_map: Mapping[str, int | list[int]] | None = None,
         enabled_modules: Mapping[str, bool] | None = None,
         reminder_config: Mapping[str, int] | None = None,
@@ -70,6 +73,15 @@ class FakeGuildSettingsRepository:
                 if clear_error_channel
                 else (
                     error_channel_id if error_channel_id is not None else current.error_channel_id
+                )
+            ),
+            reminders_channel_id=(
+                None
+                if clear_reminders_channel
+                else (
+                    reminders_channel_id
+                    if reminders_channel_id is not None
+                    else current.reminders_channel_id
                 )
             ),
             role_map=dict(role_map) if role_map is not None else dict(current.role_map),
@@ -140,6 +152,7 @@ class FakeCowShedStateRepository(SqlCowShedStateRepository):
             fed_at=None,
             collect_at=None,
             collect_role_id=None,
+            reminder_message_id=None,
             reminders_active=False,
             last_reminder_at=None,
         )
@@ -153,16 +166,29 @@ class FakeCowShedStateRepository(SqlCowShedStateRepository):
         fed_at: datetime | None = None,
         collect_at: datetime | None = None,
         collect_role_id: int | None = None,
+        reminder_message_id: int | None = None,
         reminders_active: bool | None = None,
         last_reminder_at: datetime | None = None,
     ) -> CowShedStateRecord:
+        current = await self.get_or_create(guild_id)
         record = CowShedStateRecord(
             guild_id=guild_id,
-            fed_at=fed_at,
-            collect_at=collect_at,
-            collect_role_id=collect_role_id,
-            reminders_active=bool(reminders_active),
-            last_reminder_at=last_reminder_at,
+            fed_at=fed_at if fed_at is not None else current.fed_at,
+            collect_at=collect_at if collect_at is not None else current.collect_at,
+            collect_role_id=(
+                collect_role_id if collect_role_id is not None else current.collect_role_id
+            ),
+            reminder_message_id=(
+                reminder_message_id
+                if reminder_message_id is not None
+                else current.reminder_message_id
+            ),
+            reminders_active=(
+                reminders_active if reminders_active is not None else current.reminders_active
+            ),
+            last_reminder_at=(
+                last_reminder_at if last_reminder_at is not None else current.last_reminder_at
+            ),
         )
         self._store[guild_id] = record
         return record
