@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from familybot.core.time import utcnow
+from familybot.db.repositories.cow_shed_state import CowShedStateRecord
 from familybot.db.repositories.protocols import (
     AuditLogRecord,
     GuildSettingsRecord,
@@ -122,6 +124,33 @@ class FakeMemberRepository:
         return record
 
 
+class FakeCowShedStateRepository:
+    def __init__(self, store: dict[int, CowShedStateRecord]) -> None:
+        self._store = store
+
+    async def get(self, guild_id: int) -> CowShedStateRecord | None:
+        return self._store.get(guild_id)
+
+    async def get_or_create(self, guild_id: int) -> CowShedStateRecord:
+        existing = self._store.get(guild_id)
+        if existing is not None:
+            return existing
+        created = CowShedStateRecord(guild_id=guild_id, fed_at=None, collect_at=None)
+        self._store[guild_id] = created
+        return created
+
+    async def update(
+        self,
+        guild_id: int,
+        *,
+        fed_at: datetime | None,
+        collect_at: datetime | None,
+    ) -> CowShedStateRecord:
+        record = CowShedStateRecord(guild_id=guild_id, fed_at=fed_at, collect_at=collect_at)
+        self._store[guild_id] = record
+        return record
+
+
 class FakeAuditLogRepository:
     def __init__(self, store: list[AuditLogRecord]) -> None:
         self._store = store
@@ -169,10 +198,12 @@ class FakeUnitOfWork:
         guild_store: dict[int, GuildSettingsRecord],
         member_store: dict[tuple[int, int], MemberRecord],
         audit_store: list[AuditLogRecord],
+        cow_shed_store: dict[int, CowShedStateRecord],
     ) -> None:
         self._guild_settings = FakeGuildSettingsRepository(guild_store)
         self._members = FakeMemberRepository(member_store)
         self._audit_logs = FakeAuditLogRepository(audit_store)
+        self._cow_shed_state = FakeCowShedStateRepository(cow_shed_store)
         self.committed = False
         self.rolled_back = False
 
@@ -188,6 +219,10 @@ class FakeUnitOfWork:
     def audit_logs(self) -> FakeAuditLogRepository:
         return self._audit_logs
 
+    @property
+    def cow_shed_state(self) -> FakeCowShedStateRepository:
+        return self._cow_shed_state
+
     async def commit(self) -> None:
         self.committed = True
 
@@ -200,10 +235,13 @@ class FakeUnitOfWorkFactory:
         self.guild_store: dict[int, GuildSettingsRecord] = {}
         self.member_store: dict[tuple[int, int], MemberRecord] = {}
         self.audit_store: list[AuditLogRecord] = []
+        self.cow_shed_store: dict[int, CowShedStateRecord] = {}
 
     @asynccontextmanager
     async def open(self) -> AsyncGenerator[UnitOfWork, None]:
-        uow = FakeUnitOfWork(self.guild_store, self.member_store, self.audit_store)
+        uow = FakeUnitOfWork(
+            self.guild_store, self.member_store, self.audit_store, self.cow_shed_store
+        )
         try:
             yield uow
         except Exception:

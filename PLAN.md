@@ -163,6 +163,7 @@ Extensions auto-load from `modules/*/cog.py`; a module can be disabled per guild
 | `members` | id, guild_id, discord_id, display_name, in_game_name | Links Discord ↔ in-game name |
 | `reminders` | id, guild_id, kind, key, due_at, interval_seconds, target (role/user), channel_id, status, locked_at, attempts | Scheduler table. `kind`: nourish, cow_shed, diplomacy, event_*, solar_repair |
 | `timers` | id, guild_id, kind, started_by, started_at, duration_seconds | Nourish / Cow Shed runtime state |
+| `cow_shed_state` | guild_id, fed_at, collect_at | Current feeding time and next milk-collection deadline |
 | `ledger_entries` | id, guild_id, amount (int), type, category, member_id, note, ref_id, created_at | **Append-only.** Balance = SUM(amount) |
 | `inventory_items` | id, guild_id, name, category | seed, weapon, ammo, etc. |
 | `inventory_moves` | id, guild_id, container, item_id, delta, member_id, note, created_at | **Append-only.** Container: plantation, cow_shed, armory, shared_storage |

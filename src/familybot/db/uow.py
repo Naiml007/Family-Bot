@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from familybot.db.repositories.audit_log import SqlAuditLogRepository
+from familybot.db.repositories.cow_shed_state import SqlCowShedStateRepository
 from familybot.db.repositories.guild_settings import SqlGuildSettingsRepository
 from familybot.db.repositories.members import SqlMemberRepository
 from familybot.db.repositories.protocols import UnitOfWork
@@ -21,10 +22,15 @@ class SqlUnitOfWork:
         self._guild_settings = SqlGuildSettingsRepository(session)
         self._members = SqlMemberRepository(session)
         self._audit_logs = SqlAuditLogRepository(session)
+        self._cow_shed_state = SqlCowShedStateRepository(session)
 
     @property
     def guild_settings(self) -> SqlGuildSettingsRepository:
         return self._guild_settings
+
+    @property
+    def cow_shed_state(self) -> SqlCowShedStateRepository:
+        return self._cow_shed_state
 
     @property
     def members(self) -> SqlMemberRepository:

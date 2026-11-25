@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
+from familybot.db.repositories.cow_shed_state import CowShedStateRepository
+
 
 @dataclass(frozen=True, slots=True)
 class GuildSettingsRecord:
@@ -122,6 +124,9 @@ class UnitOfWork(Protocol):
 
     @property
     def audit_logs(self) -> AuditLogRepository: ...
+
+    @property
+    def cow_shed_state(self) -> CowShedStateRepository: ...
 
     async def commit(self) -> None: ...
 
