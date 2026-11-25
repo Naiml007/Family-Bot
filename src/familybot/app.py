@@ -89,7 +89,6 @@ class FamilyBot(commands.Bot):
 
         if self.settings.DISCORD_GUILD_ID is not None:
             guild = discord.Object(id=self.settings.DISCORD_GUILD_ID)
-            self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
             log.info("commands.synced", scope=f"guild:{self.settings.DISCORD_GUILD_ID}")
         else:
