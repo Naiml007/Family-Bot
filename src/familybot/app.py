@@ -90,10 +90,20 @@ class FamilyBot(commands.Bot):
         if self.settings.DISCORD_GUILD_ID is not None:
             guild = discord.Object(id=self.settings.DISCORD_GUILD_ID)
             await self.tree.sync(guild=guild)
+            await self._dedupe_commands(self.settings.DISCORD_GUILD_ID)
             log.info("commands.synced", scope=f"guild:{self.settings.DISCORD_GUILD_ID}")
         else:
             await self.tree.sync()
             log.info("commands.synced", scope="global")
+
+    async def _dedupe_commands(self, guild_id: int) -> None:
+        """Delete duplicate guild commands, keeping the first of each name."""
+        seen: set[str] = set()
+        for cmd in await self.tree.fetch_commands(guild=discord.Object(id=guild_id)):
+            if cmd.name in seen:
+                await cmd.delete()
+            else:
+                seen.add(cmd.name)
 
     async def on_ready(self) -> None:
         user = self.user
