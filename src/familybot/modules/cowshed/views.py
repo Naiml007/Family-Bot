@@ -20,7 +20,11 @@ class CollectCowsView(discord.ui.View):
         style=discord.ButtonStyle.primary,
         custom_id="cowshed:collect",
     )
-    async def collect_button(self, interaction: discord.Interaction[discord.Client]) -> None:
+    async def collect_button(
+        self,
+        interaction: discord.Interaction[discord.Client],
+        item: discord.Button,
+    ) -> None:
         result = await self.service.collect(self.guild_id)
         if not result.due:
             await interaction.response.send_message(
