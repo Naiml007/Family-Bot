@@ -18,6 +18,7 @@ class CowShedStateRecord:
     guild_id: int
     fed_at: datetime | None
     collect_at: datetime | None
+    collect_role_id: int | None
 
 
 def _to_dt(value: datetime | None) -> datetime | None:
@@ -33,8 +34,9 @@ class CowShedStateRepository(Protocol):
         self,
         guild_id: int,
         *,
-        fed_at: datetime | None,
-        collect_at: datetime | None,
+        fed_at: datetime | None = None,
+        collect_at: datetime | None = None,
+        collect_role_id: int | None = None,
     ) -> CowShedStateRecord: ...
 
 
@@ -54,6 +56,7 @@ class SqlCowShedStateRepository:
             guild_id=row.guild_id,
             fed_at=_to_dt(row.fed_at),
             collect_at=_to_dt(row.collect_at),
+            collect_role_id=row.collect_role_id,
         )
 
     async def get_or_create(self, guild_id: int) -> CowShedStateRecord:
@@ -68,10 +71,16 @@ class SqlCowShedStateRepository:
             guild_id=row.guild_id,
             fed_at=_to_dt(row.fed_at),
             collect_at=_to_dt(row.collect_at),
+            collect_role_id=row.collect_role_id,
         )
 
     async def update(
-        self, guild_id: int, *, fed_at: datetime | None, collect_at: datetime | None
+        self,
+        guild_id: int,
+        *,
+        fed_at: datetime | None = None,
+        collect_at: datetime | None = None,
+        collect_role_id: int | None = None,
     ) -> CowShedStateRecord:
         row = await self._session.scalar(
             select(CowShedState).where(CowShedState.guild_id == guild_id).with_for_update()
@@ -81,10 +90,12 @@ class SqlCowShedStateRepository:
             self._session.add(row)
         row.fed_at = fed_at
         row.collect_at = collect_at
+        row.collect_role_id = collect_role_id
         row.updated_at = utcnow()
         await self._session.flush()
         return CowShedStateRecord(
             guild_id=row.guild_id,
             fed_at=_to_dt(row.fed_at),
             collect_at=_to_dt(row.collect_at),
+            collect_role_id=row.collect_role_id,
         )

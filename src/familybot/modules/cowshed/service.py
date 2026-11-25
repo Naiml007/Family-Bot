@@ -38,12 +38,24 @@ class CowshedService:
             await uow.commit()
             return self._dto(state)
 
+    async def set_collect_role(self, actor: ActorContext, *, role_id: int) -> CowShedDTO:
+        async with self._uow_factory.open() as uow:
+            settings = await uow.guild_settings.get_or_create(actor.guild_id)
+            require_role_level(actor, settings.role_map, RoleLevel.ADMIN, action="set collect role")
+            state = await uow.cow_shed_state.update(actor.guild_id, collect_role_id=role_id)
+            await uow.commit()
+            return self._dto(state)
+
     async def collect(self, guild_id: int) -> CollectResult:
         async with self._uow_factory.open() as uow:
             state = await uow.cow_shed_state.get_or_create(guild_id)
             due = state.collect_at is not None and utcnow() >= state.collect_at
             await uow.commit()
-            return CollectResult(due=due, collect_at=state.collect_at)
+            return CollectResult(
+                due=due,
+                collect_at=state.collect_at,
+                collect_role_id=state.collect_role_id,
+            )
 
     @staticmethod
     def _dto(state: CowShedStateRecord) -> CowShedDTO:

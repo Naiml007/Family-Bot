@@ -135,7 +135,9 @@ class FakeCowShedStateRepository:
         existing = self._store.get(guild_id)
         if existing is not None:
             return existing
-        created = CowShedStateRecord(guild_id=guild_id, fed_at=None, collect_at=None)
+        created = CowShedStateRecord(
+            guild_id=guild_id, fed_at=None, collect_at=None, collect_role_id=None
+        )
         self._store[guild_id] = created
         return created
 
@@ -143,10 +145,16 @@ class FakeCowShedStateRepository:
         self,
         guild_id: int,
         *,
-        fed_at: datetime | None,
-        collect_at: datetime | None,
+        fed_at: datetime | None = None,
+        collect_at: datetime | None = None,
+        collect_role_id: int | None = None,
     ) -> CowShedStateRecord:
-        record = CowShedStateRecord(guild_id=guild_id, fed_at=fed_at, collect_at=collect_at)
+        record = CowShedStateRecord(
+            guild_id=guild_id,
+            fed_at=fed_at,
+            collect_at=collect_at,
+            collect_role_id=collect_role_id,
+        )
         self._store[guild_id] = record
         return record
 

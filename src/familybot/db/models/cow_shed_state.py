@@ -19,6 +19,7 @@ class CowShedState(Base):
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     fed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     collect_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    collect_role_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=True, default=utcnow
     )

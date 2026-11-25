@@ -31,4 +31,8 @@ class CollectCowsView(discord.ui.View):
                 "Milk collection is not due yet.", ephemeral=True
             )
             return
-        await interaction.response.send_message("🔔 Milk collection is due now!", ephemeral=False)
+        mention = f"<@&{result.collect_role_id}> " if result.collect_role_id else ""
+        await interaction.response.send_message(
+            f"{mention}🔔 Milk collection is due now!",
+            allowed_mentions=discord.AllowedMentions(roles=True, users=False),
+        )

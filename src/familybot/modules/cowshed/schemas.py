@@ -17,3 +17,4 @@ class CowShedDTO:
 class CollectResult:
     due: bool
     collect_at: datetime | None
+    collect_role_id: int | None

@@ -30,3 +30,12 @@ async def test_collect_reports_due_only_when_time_passed() -> None:
 
     not_due = await service.collect(7)
     assert not_due.due is False
+
+
+async def test_set_collect_role() -> None:
+    factory = FakeUnitOfWorkFactory()
+    service = CowshedService(factory)
+
+    await service.set_collect_role(_actor(), role_id=123)
+
+    assert factory.cow_shed_store[7].collect_role_id == 123

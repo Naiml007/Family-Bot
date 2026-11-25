@@ -46,6 +46,16 @@ class CowshedCog(commands.Cog, name="cowshed"):
         )
         await interaction.followup.send(embed=embed, allowed_mentions=SAFE_ALLOWED_MENTIONS)
 
+    @app_commands.command(name="set_role", description="Set the role pinged when collection is due")
+    async def set_role(self, interaction: discord.Interaction, role: discord.Role) -> None:
+        await interaction.response.defer(ephemeral=True)
+        actor = build_actor_context(interaction)
+        await self.service.set_collect_role(actor, role_id=role.id)
+        await interaction.followup.send(
+            embed=success_embed("Collect Role Set", f"Collection pings now use `{role.name}`."),
+            allowed_mentions=SAFE_ALLOWED_MENTIONS,
+        )
+
 
 async def setup(bot: commands.Bot) -> None:
     """Register the cowshed cog."""
