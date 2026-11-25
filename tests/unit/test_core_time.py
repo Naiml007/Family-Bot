@@ -30,6 +30,15 @@ def test_validate_timezone_rejects_unknown_name() -> None:
 
 
 @pytest.mark.parametrize(
+    "raw",
+    ["", "../etc/passwd", "/etc/passwd", "a/../b"],
+)
+def test_validate_timezone_rejects_path_like_names(raw: str) -> None:
+    with pytest.raises(UserInputError):
+        validate_timezone(raw)
+
+
+@pytest.mark.parametrize(
     ("raw", "expected"),
     [
         ("45s", 45),

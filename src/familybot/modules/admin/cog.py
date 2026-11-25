@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import discord
+import structlog
 from discord import app_commands
 from discord.ext import commands
 
@@ -16,6 +17,8 @@ from familybot.modules.admin.service import AdminService
 
 if TYPE_CHECKING:
     from familybot.app import FamilyBot
+
+log = structlog.get_logger()
 
 
 def _format_uptime(seconds: float) -> str:
@@ -61,9 +64,12 @@ class AdminCog(commands.Cog):
     ) -> None:
         if guild is None or log_channel_id is None:
             return
-        channel = guild.get_channel(log_channel_id)
-        if isinstance(channel, discord.TextChannel):
-            await channel.send(embed=embed, allowed_mentions=SAFE_ALLOWED_MENTIONS)
+        try:
+            channel = guild.get_channel(log_channel_id) or await guild.fetch_channel(log_channel_id)
+            if isinstance(channel, discord.TextChannel):
+                await channel.send(embed=embed, allowed_mentions=SAFE_ALLOWED_MENTIONS)
+        except (discord.NotFound, discord.Forbidden) as exc:
+            log.warning("log_channel.post_failed", channel_id=log_channel_id, reason=str(exc))
 
     @admin_group.command(
         name="status",
@@ -156,7 +162,11 @@ class AdminCog(commands.Cog):
             inline=True,
         )
         roles_text = (
-            "\n".join(f"**{k}**: <@&{v}>" for k, v in cfg.role_map.items() if isinstance(v, int))
+            "\n".join(
+                f"**{k}**: "
+                + (", ".join(f"<@&{rid}>" for rid in v) if isinstance(v, list) else f"<@&{v}>")
+                for k, v in cfg.role_map.items()
+            )
             or "Default (Server Admin = Leader)"
         )
         embed.add_field(name="Role Mapping", value=roles_text, inline=False)

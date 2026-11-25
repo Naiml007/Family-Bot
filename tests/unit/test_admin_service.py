@@ -115,3 +115,36 @@ async def test_debug_and_recent_logs_queries() -> None:
 
     with pytest.raises(UserInputError):
         await service.list_recent_logs(_leader_actor(), limit=100)
+
+
+async def test_permission_check_runs_before_timezone_validation() -> None:
+    uow_factory = FakeUnitOfWorkFactory()
+    service = AdminService(uow_factory, FakeRuntimeProbe())
+
+    with pytest.raises(AccessDeniedError):
+        await service.update_config(_member_actor(), timezone="../etc/passwd")
+
+
+@pytest.mark.parametrize("timezone", ["x" * 65, "../etc/passwd"])
+async def test_update_config_bounds_and_validates_timezone(timezone: str) -> None:
+    uow_factory = FakeUnitOfWorkFactory()
+    service = AdminService(uow_factory, FakeRuntimeProbe())
+
+    with pytest.raises(UserInputError):
+        await service.update_config(_leader_actor(), timezone=timezone)
+
+
+async def test_debug_rejects_overlong_reference() -> None:
+    uow_factory = FakeUnitOfWorkFactory()
+    service = AdminService(uow_factory, FakeRuntimeProbe())
+
+    with pytest.raises(UserInputError):
+        await service.debug_correlation_id(_leader_actor(), correlation_id="x" * 65)
+
+
+async def test_set_module_enabled_rejects_unknown_module_without_loaded_modules() -> None:
+    uow_factory = FakeUnitOfWorkFactory()
+    service = AdminService(uow_factory, FakeRuntimeProbe(loaded_modules=()))
+
+    with pytest.raises(UserInputError):
+        await service.set_module_enabled(_leader_actor(), module_name="solar", enabled=True)

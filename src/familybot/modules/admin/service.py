@@ -19,6 +19,8 @@ from familybot.modules.admin.schemas import (
 from familybot.observability.audit import record_audit
 
 _PROTECTED_MODULES = frozenset({"admin"})
+_MAX_REF_LENGTH = 64
+_MAX_MODULE_LENGTH = 64
 
 
 def _to_config_dto(record: GuildSettingsRecord) -> GuildConfigDTO:
@@ -107,9 +109,6 @@ class AdminService:
         member_role_id: int | None = None,
     ) -> GuildConfigDTO:
         """Update guild settings (Leader required for role_map changes, Admin otherwise)."""
-        if timezone is not None:
-            validate_timezone(timezone)
-
         role_changes: dict[str, int] = {}
         if leader_role_id is not None:
             role_changes["leader"] = leader_role_id
@@ -128,6 +127,8 @@ class AdminService:
                 required,
                 action="update guild configuration",
             )
+            if timezone is not None:
+                validate_timezone(timezone)
 
             next_role_map = dict(current.role_map)
             next_role_map.update(role_changes)
@@ -170,15 +171,17 @@ class AdminService:
     ) -> GuildConfigDTO:
         """Enable or disable a feature module for the guild."""
         normalized = module_name.strip().lower()
-        if not normalized:
-            raise UserInputError("Module name cannot be empty.")
+        if not normalized or len(normalized) > _MAX_MODULE_LENGTH:
+            raise UserInputError(
+                f"Module name must be between 1 and {_MAX_MODULE_LENGTH} characters."
+            )
         if not enabled and normalized in _PROTECTED_MODULES:
             raise UserInputError(f"Module `{normalized}` cannot be disabled.")
 
         snapshot = self._probe.get_runtime_snapshot()
         known = {m.lower() for m in snapshot.loaded_modules}
-        if known and normalized not in known:
-            available = ", ".join(sorted(known))
+        if normalized not in known:
+            available = ", ".join(sorted(known)) or "none"
             raise UserInputError(f"Unknown module `{normalized}`. Loaded modules: {available}.")
 
         async with self._uow_factory.open() as uow:
@@ -239,8 +242,10 @@ class AdminService:
     ) -> tuple[str, list[AuditEntryDTO]]:
         """Look up audit log rows matching a correlation ID."""
         cleaned = correlation_id.strip()
-        if not cleaned:
-            raise UserInputError("Provide a non-empty correlation reference ID.")
+        if not cleaned or len(cleaned) > _MAX_REF_LENGTH:
+            raise UserInputError(
+                f"Provide a correlation reference ID of at most {_MAX_REF_LENGTH} characters."
+            )
 
         async with self._uow_factory.open() as uow:
             settings = await uow.guild_settings.get_or_create(actor.guild_id)

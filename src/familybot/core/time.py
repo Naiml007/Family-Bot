@@ -31,9 +31,11 @@ def ensure_utc(dt: datetime) -> datetime:
 
 def validate_timezone(tz_name: str) -> ZoneInfo:
     """Validate an IANA timezone name or raise UserInputError."""
+    if not tz_name or len(tz_name) > 64:
+        raise UserInputError("Provide an IANA timezone name of at most 64 characters.")
     try:
         return ZoneInfo(tz_name)
-    except ZoneInfoNotFoundError as exc:
+    except (ZoneInfoNotFoundError, ValueError) as exc:
         raise UserInputError(
             f"Unknown timezone `{tz_name}`. Use an IANA name like `UTC` or `America/New_York`."
         ) from exc

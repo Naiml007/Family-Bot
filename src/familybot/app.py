@@ -92,6 +92,9 @@ class FamilyBot(commands.Bot):
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
             log.info("commands.synced", scope=f"guild:{self.settings.DISCORD_GUILD_ID}")
+        else:
+            await self.tree.sync()
+            log.info("commands.synced", scope="global")
 
     async def on_ready(self) -> None:
         user = self.user

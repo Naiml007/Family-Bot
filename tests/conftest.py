@@ -17,10 +17,10 @@ from familybot.db.uow import SqlUnitOfWorkFactory
 @pytest.fixture
 async def pg_session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     """Provide a real PostgreSQL async_sessionmaker for integration tests."""
-    db_url = os.getenv(
-        "TEST_DATABASE_URL",
-        Settings().DATABASE_URL.get_secret_value(),
-    )
+    explicit_url = os.getenv("TEST_DATABASE_URL")
+    if not explicit_url and not (os.getenv("CI") or os.getenv("REQUIRE_DB_TESTS") == "1"):
+        pytest.skip("Set TEST_DATABASE_URL or REQUIRE_DB_TESTS=1 to run DB integration tests.")
+    db_url = explicit_url or Settings().DATABASE_URL.get_secret_value()
     engine, session_factory = create_engine_and_sessionmaker(db_url)
     try:
         async with engine.begin() as conn:
