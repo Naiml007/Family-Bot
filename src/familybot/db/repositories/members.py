@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from familybot.core.time import ensure_utc, utcnow
@@ -49,21 +50,31 @@ class SqlMemberRepository:
             Member.discord_id == discord_id,
         )
         row = await self._session.scalar(stmt)
-        now = utcnow()
         if row is None:
-            row = Member(
-                guild_id=guild_id,
-                discord_id=discord_id,
-                display_name=display_name,
-                in_game_name=in_game_name,
-                created_at=now,
-                updated_at=now,
+            now = utcnow()
+            await self._session.execute(
+                insert(Member)
+                .values(
+                    guild_id=guild_id,
+                    discord_id=discord_id,
+                    display_name=display_name,
+                    in_game_name=in_game_name,
+                    created_at=now,
+                    updated_at=now,
+                )
+                .on_conflict_do_update(
+                    index_elements=[Member.guild_id, Member.discord_id],
+                    set_={"display_name": display_name},
+                )
             )
-            self._session.add(row)
+            row = await self._session.scalar(stmt.with_for_update())
         else:
             row.display_name = display_name
             if in_game_name is not None:
                 row.in_game_name = in_game_name
-            row.updated_at = now
-        await self._session.flush()
+            row.updated_at = utcnow()
+            await self._session.flush()
+        if row is None:
+            msg = f"member {guild_id}/{discord_id} could not be upserted"
+            raise RuntimeError(msg)
         return _to_record(row)

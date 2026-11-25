@@ -23,6 +23,8 @@ async def run() -> None:
     token = settings.DISCORD_TOKEN.get_secret_value()
     if not token or token in {"unset", "your-discord-bot-token-here"}:
         raise RuntimeError("DISCORD_TOKEN must be configured before starting the bot.")
+    if settings.DATABASE_URL is None:
+        raise RuntimeError("DATABASE_URL must be configured before starting the bot.")
 
     engine, session_factory = create_engine_and_sessionmaker(
         settings.DATABASE_URL.get_secret_value()

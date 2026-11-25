@@ -20,7 +20,12 @@ async def pg_session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]
     explicit_url = os.getenv("TEST_DATABASE_URL")
     if not explicit_url and not (os.getenv("CI") or os.getenv("REQUIRE_DB_TESTS") == "1"):
         pytest.skip("Set TEST_DATABASE_URL or REQUIRE_DB_TESTS=1 to run DB integration tests.")
-    db_url = explicit_url or Settings().DATABASE_URL.get_secret_value()
+    db_url = explicit_url
+    if db_url is None:
+        settings = Settings()
+        if settings.DATABASE_URL is None:
+            pytest.skip("Set DATABASE_URL or TEST_DATABASE_URL to run DB integration tests.")
+        db_url = settings.DATABASE_URL.get_secret_value()
     engine, session_factory = create_engine_and_sessionmaker(db_url)
     try:
         async with engine.begin() as conn:

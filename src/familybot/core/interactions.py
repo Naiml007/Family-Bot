@@ -23,9 +23,7 @@ def build_actor_context(interaction: discord.Interaction) -> ActorContext:
 
     if isinstance(user, discord.Member):
         role_ids = tuple(role.id for role in user.roles)
-        is_guild_admin = bool(
-            user.guild_permissions.administrator or user.guild_permissions.manage_guild
-        )
+        is_guild_admin = bool(user.guild_permissions.administrator)
 
     return ActorContext(
         guild_id=interaction.guild_id,

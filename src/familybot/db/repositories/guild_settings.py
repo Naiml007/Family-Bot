@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from familybot.core.time import ensure_utc, utcnow
@@ -33,26 +34,36 @@ class SqlGuildSettingsRepository:
         self._session = session
 
     async def get(self, guild_id: int) -> GuildSettingsRecord | None:
-        stmt = select(GuildSettings).where(GuildSettings.guild_id == guild_id)
-        row = await self._session.scalar(stmt)
+        row = await self._session.scalar(
+            select(GuildSettings).where(GuildSettings.guild_id == guild_id)
+        )
         return _to_record(row) if row is not None else None
 
     async def get_or_create(self, guild_id: int) -> GuildSettingsRecord:
-        stmt = select(GuildSettings).where(GuildSettings.guild_id == guild_id)
-        row = await self._session.scalar(stmt)
+        row = await self._session.scalar(
+            select(GuildSettings).where(GuildSettings.guild_id == guild_id).with_for_update()
+        )
         if row is None:
             now = utcnow()
-            row = GuildSettings(
-                guild_id=guild_id,
-                timezone="UTC",
-                role_map={},
-                enabled_modules={},
-                reminder_config={},
-                created_at=now,
-                updated_at=now,
+            await self._session.execute(
+                insert(GuildSettings)
+                .values(
+                    guild_id=guild_id,
+                    timezone="UTC",
+                    role_map={},
+                    enabled_modules={},
+                    reminder_config={},
+                    created_at=now,
+                    updated_at=now,
+                )
+                .on_conflict_do_nothing(index_elements=[GuildSettings.guild_id])
             )
-            self._session.add(row)
-            await self._session.flush()
+            row = await self._session.scalar(
+                select(GuildSettings).where(GuildSettings.guild_id == guild_id).with_for_update()
+            )
+        if row is None:
+            msg = f"guild_settings row for {guild_id} could not be created"
+            raise RuntimeError(msg)
         return _to_record(row)
 
     async def update(
@@ -68,20 +79,30 @@ class SqlGuildSettingsRepository:
         enabled_modules: Mapping[str, bool] | None = None,
         reminder_config: Mapping[str, int] | None = None,
     ) -> GuildSettingsRecord:
-        stmt = select(GuildSettings).where(GuildSettings.guild_id == guild_id)
-        row = await self._session.scalar(stmt)
+        row = await self._session.scalar(
+            select(GuildSettings).where(GuildSettings.guild_id == guild_id).with_for_update()
+        )
         if row is None:
             now = utcnow()
-            row = GuildSettings(
-                guild_id=guild_id,
-                timezone="UTC",
-                role_map={},
-                enabled_modules={},
-                reminder_config={},
-                created_at=now,
-                updated_at=now,
+            await self._session.execute(
+                insert(GuildSettings)
+                .values(
+                    guild_id=guild_id,
+                    timezone="UTC",
+                    role_map={},
+                    enabled_modules={},
+                    reminder_config={},
+                    created_at=now,
+                    updated_at=now,
+                )
+                .on_conflict_do_nothing(index_elements=[GuildSettings.guild_id])
             )
-            self._session.add(row)
+            row = await self._session.scalar(
+                select(GuildSettings).where(GuildSettings.guild_id == guild_id).with_for_update()
+            )
+        if row is None:
+            msg = f"guild_settings row for {guild_id} could not be created"
+            raise RuntimeError(msg)
 
         if timezone is not None:
             row.timezone = timezone

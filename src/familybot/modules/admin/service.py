@@ -227,6 +227,8 @@ class AdminService:
     ) -> None:
         """Write an audit entry for runtime admin actions (reload, sync)."""
         async with self._uow_factory.open() as uow:
+            current = await uow.guild_settings.get_or_create(actor.guild_id)
+            require_role_level(actor, current.role_map, RoleLevel.ADMIN, action=action)
             await record_audit(
                 uow,
                 actor,

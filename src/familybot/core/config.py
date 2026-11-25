@@ -25,9 +25,7 @@ class Settings(BaseSettings):
     DISCORD_TOKEN: SecretStr = Field(default=SecretStr("unset"))
     DISCORD_GUILD_ID: int | None = None
 
-    DATABASE_URL: SecretStr = Field(
-        default=SecretStr("postgresql+asyncpg://familybot:familybot@localhost:5432/familybot")
-    )
+    DATABASE_URL: SecretStr | None = None
 
     HEALTH_HOST: str = "0.0.0.0"  # noqa: S104
     HEALTH_PORT: int = 8080

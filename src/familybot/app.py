@@ -166,7 +166,7 @@ class FamilyBot(commands.Bot):
             channel = interaction.guild.get_channel(cfg.error_channel_id)
             if not isinstance(channel, discord.TextChannel):
                 return
-            tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            tb = "".join(traceback.format_exception_only(type(exc), exc))
             truncated = tb[-1800:]
             cmd_name = interaction.command.qualified_name if interaction.command else "unknown"
             embed = error_embed(
@@ -226,5 +226,7 @@ class FamilyBot(commands.Bot):
             "Unexpected Error",
             f"Something went wrong while running this command.\n\nError ref: `{cid}`",
         )
-        await self._send_interaction_error(interaction, embed)
-        await self._post_error_channel(interaction, cid, cause)
+        try:
+            await self._send_interaction_error(interaction, embed)
+        finally:
+            await self._post_error_channel(interaction, cid, cause)

@@ -206,7 +206,14 @@ class AdminCog(commands.Cog):
         actor = build_actor_context(interaction)
         await self.service.assert_admin(actor, action="reload modules")
 
-        ext = f"familybot.modules.{module.strip().lower()}.cog"
+        normalized = module.strip().lower()
+        if len(normalized) > 64:
+            raise UserInputError("Module name must be between 1 and 64 characters.")
+        loaded = {m.lower() for m in self.bot.get_runtime_snapshot().loaded_modules}
+        if normalized not in loaded:
+            available = ", ".join(sorted(loaded)) or "none"
+            raise UserInputError(f"Unknown module `{normalized}`. Loaded modules: {available}.")
+        ext = f"familybot.modules.{normalized}.cog"
         try:
             await self.bot.reload_extension(ext)
         except commands.ExtensionError as exc:

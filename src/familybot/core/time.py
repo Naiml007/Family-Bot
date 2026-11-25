@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from familybot.core.errors import UserInputError
 
 _DURATION_PART_RE = re.compile(r"(\d+)\s*([dhms])", re.IGNORECASE)
+_MAX_DURATION_INPUT = 32
+_MAX_DURATION_SECONDS = 31_536_000
 _UNIT_SECONDS = {
     "d": 86_400,
     "h": 3_600,
@@ -51,13 +53,15 @@ def format_dt(dt: datetime, tz_name: str = "UTC") -> str:
 def parse_duration(raw: str) -> int:
     """Parse a human duration such as `1h30m`, `45m`, or `90s` into positive seconds."""
     cleaned = raw.strip()
-    if not cleaned:
-        raise UserInputError("Duration cannot be empty. Examples: `30m`, `2h`, `1h30m`.")
+    if not cleaned or len(cleaned) > _MAX_DURATION_INPUT:
+        raise UserInputError("Duration cannot be empty or longer than 32 characters.")
 
     if cleaned.isdigit():
         seconds = int(cleaned)
         if seconds <= 0:
             raise UserInputError("Duration must be greater than 0 seconds.")
+        if seconds > _MAX_DURATION_SECONDS:
+            raise UserInputError("Duration exceeds the maximum of one year (365 days).")
         return seconds
 
     pos = 0
@@ -75,4 +79,6 @@ def parse_duration(raw: str) -> int:
         raise UserInputError(f"Invalid duration `{raw}`. Examples: `30m`, `2h`, `1h30m`.")
     if total <= 0:
         raise UserInputError("Duration must be greater than 0 seconds.")
+    if total > _MAX_DURATION_SECONDS:
+        raise UserInputError("Duration exceeds the maximum of one year (365 days).")
     return total
