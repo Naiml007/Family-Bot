@@ -1,1 +1,0 @@
-"""Cow Shed module."""

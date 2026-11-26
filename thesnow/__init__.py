@@ -1,0 +1,1 @@
+"""TheSnow Discord bot package."""

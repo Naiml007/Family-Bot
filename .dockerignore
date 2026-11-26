@@ -1,6 +1,0 @@
-.env
-.env.*
-.git/
-tests/
-__pycache__/
-*.pyc
